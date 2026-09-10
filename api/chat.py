@@ -3036,7 +3036,7 @@ def _generate_report_spec_via_openai(
     )
     user_msg = "\n\n".join(user_parts)
 
-    client = OpenAI(
+    client = _get_openai_client(
         api_key=api_key,
         timeout=httpx.Timeout(120.0, connect=10.0),
     )
@@ -3072,13 +3072,23 @@ def _generate_report_spec_via_openai(
         # reservation for the process lifetime (or until TTL sweep).
         settled = False
         try:
-            response = client.responses.create(
-                model=model,
-                instructions=_REPORT_CODE_SYSTEM_PROMPT,
-                input=attempt_input,
-                max_output_tokens=4096,
-                reasoning={"effort": "low"},
-            )
+            if _use_responses_api():
+                response = client.responses.create(
+                    model=model,
+                    instructions=_REPORT_CODE_SYSTEM_PROMPT,
+                    input=attempt_input,
+                    max_output_tokens=4096,
+                    reasoning={"effort": "low"},
+                )
+            else:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": _REPORT_CODE_SYSTEM_PROMPT},
+                        {"role": "user", "content": attempt_input},
+                    ],
+                    max_completion_tokens=4096,
+                )
             # Log every call for the admin dashboard. Only public_manager rows
             # count against the demo cap — other roles are logged for
             # visibility but exempt from rate limiting.
@@ -3090,8 +3100,8 @@ def _generate_report_spec_via_openai(
                 role=user_role,
                 provider="openai",
                 model=model,
-                prompt_tokens=int(getattr(usage, "input_tokens", 0) or 0) if usage else 0,
-                completion_tokens=int(getattr(usage, "output_tokens", 0) or 0) if usage else 0,
+                prompt_tokens=int(getattr(usage, "prompt_tokens", 0) or getattr(usage, "input_tokens", 0) or 0) if usage else 0,
+                completion_tokens=int(getattr(usage, "completion_tokens", 0) or getattr(usage, "output_tokens", 0) or 0) if usage else 0,
                 session_id=session_id,
             )
             settled = True
@@ -3101,7 +3111,13 @@ def _generate_report_spec_via_openai(
 
         response_id = str(getattr(response, "id", None) or "unknown")
         try:
-            text = getattr(response, "output_text", "") or ""
+            text = ""
+            choices = getattr(response, "choices", None)
+            if choices and len(choices) > 0:
+                msg = getattr(choices[0], "message", None)
+                text = getattr(msg, "content", "") or ""
+            if not text:
+                text = getattr(response, "output_text", "") or ""
             if not text:
                 text = "".join(
                     getattr(block, "text", "") or ""
@@ -3150,7 +3166,7 @@ async def generate_title(
         return
 
     try:
-        client = OpenAI(
+        client = _get_openai_client(
             api_key=api_key,
             timeout=httpx.Timeout(30.0, connect=5.0),
         )
@@ -3206,7 +3222,18 @@ async def generate_title(
 
 # The agentic orchestrator model. Function tools on /v1/chat/completions
 # require reasoning_effort="none" for the gpt-5.6 family (400 otherwise).
-ORCHESTRATOR_MODEL = "gpt-5.6-terra"
+ORCHESTRATOR_MODEL = os.environ.get("LAMBDA_ERP_CHAT_MODEL") or "gpt-5.6-terra"
+
+
+def _get_openai_client(api_key: str, timeout: httpx.Timeout | None = None) -> OpenAI:
+    """Build an OpenAI client honoring OPENAI_BASE_URL if configured."""
+    base_url = os.environ.get("OPENAI_BASE_URL") or None
+    kwargs = {"api_key": api_key}
+    if base_url:
+        kwargs["base_url"] = base_url
+    if timeout:
+        kwargs["timeout"] = timeout
+    return OpenAI(**kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -3224,8 +3251,14 @@ ORCHESTRATOR_MODEL = "gpt-5.6-terra"
 
 def _use_responses_api() -> bool:
     # Default: the Responses API (needed for Office attachments + native
-    # reasoning). Set ERP_CHAT_API=chat to fall back to Chat Completions.
-    return os.environ.get("ERP_CHAT_API", "responses").strip().lower() != "chat"
+    # reasoning) when targeting OpenAI direct. OpenAI-compatible proxies / custom
+    # endpoints (Ollama, vLLM, Gemini) do not support /v1/responses.
+    # Set ERP_CHAT_API=responses to force, or ERP_CHAT_API=chat to disable.
+    # ponytail: upgrade to model/endpoint detection if proxy supports responses later.
+    configured = os.environ.get("ERP_CHAT_API", "").strip().lower()
+    if configured:
+        return configured != "chat"
+    return not bool(os.environ.get("OPENAI_BASE_URL"))
 
 
 # Reasoning effort for the Responses path (native; the Chat path uses "none").
@@ -3366,7 +3399,12 @@ def _shim_message_from_responses(response) -> _ShimMessage:
                 if getattr(c, "type", None) in ("output_text", "text"):
                     text_parts.append(getattr(c, "text", "") or "")
         # reasoning items are not echoed back (state is rebuilt from history each turn)
-    text = "".join(text_parts) or (getattr(response, "output_text", "") or "")
+    text = "".join(text_parts)
+    if not text:
+        try:
+            text = getattr(response, "output_text", "") or ""
+        except (TypeError, AttributeError):
+            text = ""
     return _ShimMessage(text, tool_calls)
 
 
@@ -3430,7 +3468,7 @@ async def run_thinking_loop(
         await on_event({"type": "error", "content": "Error: OPENAI_API_KEY is not configured. Please set it in the .env file."})
         return
 
-    openai_client = OpenAI(
+    openai_client = _get_openai_client(
         api_key=openai_api_key,
         timeout=httpx.Timeout(120.0, connect=10.0),
     )
@@ -3770,7 +3808,7 @@ def transcribe_audio(audio_bytes: bytes, audio_format: str, api_key: str) -> str
     (empty result or a prompt-echo hallucination on a near-silent clip).
     Raises on an actual API error so the caller can surface it.
     """
-    client = OpenAI(api_key=api_key, timeout=httpx.Timeout(60.0, connect=10.0))
+    client = _get_openai_client(api_key=api_key, timeout=httpx.Timeout(60.0, connect=10.0))
 
     audio_file = io.BytesIO(audio_bytes)
     audio_file.name = f"voice.{audio_format or 'webm'}"

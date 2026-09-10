@@ -4,12 +4,14 @@ import { initReactI18next } from "react-i18next";
 import en from "./locales/en.json";
 import de from "./locales/de.json";
 import fr from "./locales/fr.json";
+import vi from "./locales/vi.json";
 
 /** The languages the UI offers. `code` is what we persist + pass to i18next. */
 export const SUPPORTED_LANGUAGES = [
   { code: "en", label: "English" },
   { code: "de", label: "Deutsch" },
   { code: "fr", label: "Français" },
+  { code: "vi", label: "Tiếng Việt" },
 ] as const;
 
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"];
@@ -46,6 +48,7 @@ i18n.use(initReactI18next).init({
     en: { translation: en },
     de: { translation: de },
     fr: { translation: fr },
+    vi: { translation: vi },
   },
   lng: getStoredLanguage(),
   fallbackLng: "en", // any key missing in de/fr falls back to the English value

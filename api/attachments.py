@@ -112,7 +112,11 @@ def _openai_client() -> OpenAI:
     call from the chat completion; same OPENAI_API_KEY)."""
     global _openai_singleton
     if _openai_singleton is None:
-        _openai_singleton = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+        base_url = os.environ.get("OPENAI_BASE_URL") or None
+        kwargs = {"api_key": os.environ.get("OPENAI_API_KEY", "")}
+        if base_url:
+            kwargs["base_url"] = base_url
+        _openai_singleton = OpenAI(**kwargs)
     return _openai_singleton
 
 

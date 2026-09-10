@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md
 
 ## Before touching accounting, stock, or document lifecycle
