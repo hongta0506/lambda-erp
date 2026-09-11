@@ -42,10 +42,10 @@ RUN apt-get update \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the Python project and its dependencies. flit needs the README.
+# Install the Python project and its dependencies (including postgres extra).
 COPY pyproject.toml README.md ./
 COPY lambda_erp ./lambda_erp
-RUN pip install --no-cache-dir .
+RUN pip install --default-timeout=120 --retries 5 --no-cache-dir ".[postgres]"
 
 # Application code + built frontend.
 COPY api ./api
