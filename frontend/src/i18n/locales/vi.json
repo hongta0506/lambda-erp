@@ -333,7 +333,8 @@
       "Reports": "Báo cáo",
       "Masters": "Danh mục gốc",
       "Settings": "Cài đặt",
-      "Rentals": "Cho thuê thiết bị"
+      "Rentals": "Cho thuê thiết bị",
+      "HR & Payroll": "Nhân sự & Lương"
     },
     "items": {
       "Getting Started": "Bắt đầu sử dụng",
@@ -376,7 +377,16 @@
       "Chart of Accounts": "Hệ thống tài khoản",
       "Fleet Calendar": "Lịch đội xe/thiết bị",
       "Fleet (Assets)": "Đội xe/thiết bị (Tài sản)",
-      "Reservations": "Đặt lịch hẹn"
+      "Reservations": "Đặt lịch hẹn",
+      "Employee": "Nhân viên",
+      "Attendance": "Chấm công",
+      "Leave Application": "Đơn nghỉ phép",
+      "Salary Structure": "Cơ cấu lương",
+      "Salary Slip": "Phiếu lương",
+      "Department": "Phòng ban",
+      "Designation": "Chức vụ",
+      "Leave Type": "Loại nghỉ phép",
+      "Salary Component": "Khoản mục lương"
     }
   },
   "login": {

@@ -1,3 +1,4 @@
+import "./plugins/hr";
 import { bootstrap } from "./bootstrap";
 import "./index.css";
 

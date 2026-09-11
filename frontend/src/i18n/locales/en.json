@@ -302,7 +302,8 @@
       "Reports": "Reports",
       "Masters": "Masters",
       "Settings": "Settings",
-      "Rentals": "Rentals"
+      "Rentals": "Rentals",
+      "HR & Payroll": "HR & Payroll"
     },
     "items": {
       "Getting Started": "Getting Started",
@@ -345,7 +346,16 @@
       "Chart of Accounts": "Chart of Accounts",
       "Fleet Calendar": "Fleet Calendar",
       "Fleet (Assets)": "Fleet (Assets)",
-      "Reservations": "Reservations"
+      "Reservations": "Reservations",
+      "Employee": "Employee",
+      "Attendance": "Attendance",
+      "Leave Application": "Leave Application",
+      "Salary Structure": "Salary Structure",
+      "Salary Slip": "Salary Slip",
+      "Department": "Department",
+      "Designation": "Designation",
+      "Leave Type": "Leave Type",
+      "Salary Component": "Salary Component"
     }
   },
   "login": {

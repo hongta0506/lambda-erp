@@ -49,6 +49,7 @@ RUN pip install --default-timeout=120 --retries 5 --no-cache-dir ".[postgres]"
 
 # Application code + built frontend.
 COPY api ./api
+COPY erp_hr ./erp_hr
 COPY --from=frontend-build /build/dist ./frontend/dist
 
 # Writable paths — /data is the intended volume mount for persisted SQLite.

@@ -27,6 +27,7 @@ services:
         condition: service_healthy
     environment:
       LAMBDA_ERP_DB: ${LAMBDA_ERP_DB:-postgresql://postgres:postgres@postgres:5432/lambda_erp}
+      LAMBDA_ERP_PLUGINS: ${LAMBDA_ERP_PLUGINS:-erp_hr}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       ERP_CHAT_API: ${ERP_CHAT_API:-chat}
